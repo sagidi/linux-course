@@ -74,9 +74,14 @@ module. You review one readable file instead of three programs, and a mistake ca
 ## Module 1.2 notes
 
 - The approved PDF is kept unchanged: `modules/module-1.2-dns-ttl-caching/Linux_DNS_and_TTL_Caching_Architecture.pdf`.
-- `module.yaml` reproduces its slides word for word, in 16:9. Additions are marked `# NEW` / `# CHANGED`:
-  narration for the diagram, demo and quiz slides (the approved script had none), two extra quiz questions,
-  the "Fix:" commands in the outage table (asked for by prompt v2.2), and `dig google.com +short` in demo 2.
+- `module.yaml` reproduces its slides word for word, in 16:9.
+- **Voice:** the approved ElevenLabs script is used **word for word** (saved in `narration_approved.txt`;
+  the build refuses to run if the narration differs). It is split across the slides it talks about; the quiz
+  slide is shown silently for 8 seconds because the script has no quiz part.
+- **Terminal demos:** the approved `dns_v2_cache.tape` commands, recorded at 1920×1080 (font 32) instead of
+  1280×720 (font 22) so the video is full HD. Same look, sharper.
+- Additions (slides/quiz only, never spoken), marked `# NEW`: the "Fix:" commands in the outage table (asked
+  for by prompt v2.2) and two extra quiz questions.
 - The approved slides use some technical names (`getaddrinfo()`, `glibc`, NSS). Prompt v3 allows precise
   terms **on slides** if they are explained, and keeps **narration** 100% plain English. If you want
   slides fully plain too, change rule 1 in [`prompts/module_prompt.md`](../../prompts/module_prompt.md).

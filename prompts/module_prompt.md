@@ -86,7 +86,7 @@ You only write the commands. Theme, font, size, typing speed and pauses are appl
 | 8 | `demo-1` | `terminal` + `demo` | Slide: expected terminal output. Demo: the commands, recorded live |
 | 9 | `demo-2` | `terminal` + `demo` | Same, second demo (slide may show 2 panels side by side) |
 | 10 | `outage-framework` | `table` | Configuration / Why Required / If NOT Done (Outage Impact) + **Fix:** |
-| 11 | `knowledge-check` | `quiz` | Shows quiz question 1 |
+| 11 | `knowledge-check` | `quiz` | Shows quiz question 1 (narration may be `""` with `hold: 8` for a silent thinking pause) |
 | 12 | `lab-and-next` | `lab` | Lab challenge steps + preview of the next module |
 
 Slide numbers: scene 2 is `"{{NUMBER}}.1"`, scene 3 is `"{{NUMBER}}.2"` ... scene 12 is `"{{NUMBER}}.11"`.
@@ -117,7 +117,7 @@ Slide titles: `"UPPERCASE LABEL: Normal Case Detail"`, like the example.
 | quiz | question 200; explanation 320; tip 220 |
 
 ### 10. SELF-CHECK BEFORE YOU ANSWER
-1. Exactly 12 scenes in the order above, each with `narration`.
+1. Exactly 12 scenes in the order above, each with `narration` (only the quiz scene may be silent with `hold`).
 2. Every command in `demo` and `lab` is real, correct and safe, and its output on the slide is realistic.
 3. Narration is plain spoken English (no symbols or markup) and 450-700 words in total.
 4. Every slide stays within the size limits.

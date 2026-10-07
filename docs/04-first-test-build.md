@@ -80,9 +80,10 @@ If you saved your ElevenLabs key in [step 3](03-create-accounts-and-keys.md#a-el
 It prints how many characters it sends to ElevenLabs (about 4,000) and creates `Module_1_2_Final.mp4`.
 Slides and terminal recordings are reused, so this is quicker.
 
-> **Review notes for Module 1.2:** a few narration lines were added where the approved script
-> had none (diagram, demo explanations, quiz) and the outage slide got "Fix:" commands.
-> They are marked `# NEW` / `# CHANGED` in `module.yaml`. Read them before the final build.
+> **Module 1.2's voice = your approved script, word for word.** It is saved in
+> `modules/module-1.2-dns-ttl-caching/narration_approved.txt`, and the build stops if the narration in
+> `module.yaml` is ever different. The only additions are on the slides and quiz (not spoken):
+> "Fix:" commands on the outage slide and 2 extra quiz questions, marked `# NEW`.
 
 ---
 

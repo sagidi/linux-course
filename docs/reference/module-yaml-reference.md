@@ -13,6 +13,13 @@ Copy from it when in doubt. `./build.sh X.Y --check` tells you exactly which lin
 - `key: |` followed by indented lines = multi-line text (line breaks are kept).
 - `# ...` is a comment (ignored), except inside a `|` block, where it is normal text.
 
+## Locking an approved voice script
+
+Once you approve a module's narration, save the full script as `narration_approved.txt` in the module folder
+(plain text, any line breaks). From then on the build checks that the narration in `module.yaml` matches it
+**word for word** and stops if anything differs, so the voice can never drift by accident.
+Module 1.2 already has one.
+
 ## Text markup (slides only, never in narration)
 
 | Write | Shows as |

@@ -13,6 +13,7 @@ The owner is new to this. Keep answers short and give copy-paste commands.
 ## Writing or editing a module
 - Follow `prompts/module_prompt.md` exactly (12 scenes, size limits, plain-English narration, safe demo commands).
 - Use `modules/module-1.2-dns-ttl-caching/module.yaml` as the style reference. Its slide text is approved: do not change it unless asked.
+- NEVER rewrite or add to approved narration. If `narration_approved.txt` exists, the voice must match it word for word (the build enforces this).
 - Always finish with `./build.sh X.Y --check` (fast) and `--slides` to confirm the slides fit.
 - Never put API keys in files other than `.env` (gitignored). Never commit `build/` output.
 

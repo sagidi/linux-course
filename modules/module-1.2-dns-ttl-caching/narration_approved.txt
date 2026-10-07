@@ -1,0 +1,27 @@
+Welcome to Module 1.2: Linux DNS and Caching Made Simple.
+
+In this lesson, we are going to look at how Linux translates easy-to-read domain names into machine-readable IP addresses, and why this simple step is so critical for keeping your log pipelines running smoothly.
+
+Every computer on a network has an IP address, like 142.250.190.46. It works just like a physical street address. Routers use it to deliver data quickly across the internet. But humans are terrible at remembering long strings of numbers, so we use domain names like google.com instead. DNS, or the Domain Name System, acts as the automatic phone book that translates human names into computer IP addresses behind the scenes.
+
+In enterprise log pipelines, DNS is everywhere. For example, log forwarders send security events to a Splunk server name, like splunk-server.local. If your Linux system cannot translate that server name into an IP address, data stops moving instantly. Logs pile up on the local machine, filling up hard drive space until the connection is restored.
+
+So, how does Linux actually look up an address? It follows four simple steps.
+
+First, an application or log forwarder asks the operating system for an IP address.
+
+Second, Linux checks its own local memory cache and its local static overrides file, called /etc/hosts.
+
+Third, if the address is not found locally, Linux opens the /etc/resolv.conf file to find the IP address of its designated network DNS helper, such as Google's public DNS at 8.8.8.8.
+
+Fourth, Google DNS returns the correct destination IP address, along with a timer telling Linux how long it can safely remember that address.
+
+Linux relies on two primary configuration files for this process. The first file is /etc/hosts. This is a simple list stored directly on your machine. Linux always checks /etc/hosts first. If a domain name is listed here, Linux uses that IP immediately without ever reaching out to the network. The second file is /etc/resolv.conf. This file lists external DNS server addresses, like nameserver 8.8.8.8, which Linux uses whenever a domain name isn't found in your local hosts file.
+
+To save time and network traffic, DNS uses something called TTL, or Time-To-Live. TTL is simply a memory countdown timer sent alongside the IP address. It tells your computer how many seconds it can hold that IP in memory. As long as the timer is active, subsequent connections connect instantly in zero milliseconds, without generating any extra network traffic.
+
+Let's test this in the terminal. When you run cat /etc/resolv.conf, you can see your active nameserver address. When you run dig google.com, you will see the resolved IP address along with the TTL timer counting down.
+
+If your DNS configuration breaks, your data pipeline freezes. But by understanding how /etc/hosts and /etc/resolv.conf work together, you can quickly diagnose connection drops and ensure log forwarders deliver data reliably every time.
+
+Now, head over to the interactive Killercoda terminal on your screen and complete the hands-on exercise. See you in the next lesson!

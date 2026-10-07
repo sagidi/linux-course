@@ -16,6 +16,24 @@ from common import (REPO_ROOT, fail, find_module_dir, load_course, load_yaml,
 from validate import check_module, print_report
 
 
+def check_approved_narration(mdir, module):
+    """If narration_approved.txt exists, the voice text must match it word for word."""
+    approved_file = mdir / "narration_approved.txt"
+    if not approved_file.exists():
+        return
+    approved = approved_file.read_text(encoding="utf-8").split()
+    spoken = " ".join(str(sc.get("narration") or "") for sc in module["scenes"]).split()
+    if spoken == approved:
+        say("  narration matches narration_approved.txt word for word")
+        return
+    i = next((k for k, (a, b) in enumerate(zip(spoken, approved)) if a != b),
+             min(len(spoken), len(approved)))
+    fail("The narration in module.yaml is different from narration_approved.txt\n"
+         f"  approved: ...{' '.join(approved[max(0, i - 6):i + 8])}...\n"
+         f"  in yaml:  ...{' '.join(spoken[max(0, i - 6):i + 8])}...\n"
+         "Fix module.yaml, or update narration_approved.txt if you approved a new script.")
+
+
 def main():
     ap = argparse.ArgumentParser(description="Build one course module.")
     ap.add_argument("module", help="module number (e.g. 1.2) or folder name")
@@ -39,6 +57,7 @@ def main():
     step(1, total, "Checking module.yaml")
     if not print_report(check_module(module), "module.yaml"):
         fail("Fix the problems above, then run the build again.")
+    check_approved_narration(mdir, module)
     if args.check:
         return
 

@@ -43,8 +43,8 @@ voice:
 # How to SAY tricky words (only changes the audio, not slides or captions).
 # Listen to your draft first, then add fixes here. Examples:
 pronounce:
-  "journalctl": "journal control"
-  "systemd": "system D"
+  # "journalctl": "journal control"
+  # "systemd": "system D"
   # "resolv.conf": "resolve dot conf"
 
 # ---------------------------------------------------------------------
