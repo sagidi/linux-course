@@ -1,0 +1,20 @@
+# Secrets - never upload
+.env
+
+# Python tools installed by ./setup.sh
+.venv
+__pycache__/
+*.pyc
+
+# Everything the build makes (videos are large; rebuild any time with ./build.sh)
+modules/*/build/
+
+# Backups made by ./paste-module.sh
+modules/*/module.yaml.bak-*
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*:Zone.Identifier

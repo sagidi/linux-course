@@ -1,0 +1,76 @@
+# =====================================================================
+# COURSE SETTINGS - shared by every module.
+# Change a value here once and every module you build uses it.
+# (Secrets like your ElevenLabs key do NOT go here - they go in .env)
+# =====================================================================
+
+course:
+  title: "Linux for SRE & Log Pipelines"      # <- change to your course name
+  instructor: "Your Name"                      # <- your name (shown in PDF properties)
+  audience: "Beginner IT students, junior admins and aspiring SREs"
+  context: "Real-world examples use enterprise log pipelines: Splunk forwarders/indexers and ClickHouse."
+
+# ---------------------------------------------------------------------
+# COURSE OUTLINE - the list of modules, in teaching order.
+# ./new-module.sh reads the title + previous/next module from here.
+# Add your other modules here as you plan them.
+# ---------------------------------------------------------------------
+outline:
+  - number: "1.2"
+    title: "Linux DNS & TTL Caching Architecture"
+  - number: "1.3"
+    title: "Linux System Logging (/var/log & journalctl)"
+
+# ---------------------------------------------------------------------
+# VOICEOVER
+#   Final builds (./build.sh 1.2)          use the provider below.
+#   Draft builds (./build.sh 1.2 --draft)  always use a FREE voice.
+# ---------------------------------------------------------------------
+voice:
+  provider: elevenlabs            # elevenlabs | piper | espeak
+  elevenlabs:
+    voice_id: "21m00Tcm4TlvDq8ikWAM"      # "Rachel". Pick yours: docs/03-create-accounts-and-keys.md
+    model_id: "eleven_multilingual_v2"   # current high-quality model
+    stability: 0.5                        # 50%
+    similarity_boost: 0.75                # 75%
+  piper:                          # free offline voice used for drafts
+    voice: "en_US-lessac-medium"
+    sentence_silence: 0.35
+  espeak:                         # robotic fallback if Piper is missing
+    voice: "en-us"
+    speed: 160
+
+# How to SAY tricky words (only changes the audio, not slides or captions).
+# Listen to your draft first, then add fixes here. Examples:
+pronounce:
+  "journalctl": "journal control"
+  "systemd": "system D"
+  # "resolv.conf": "resolve dot conf"
+
+# ---------------------------------------------------------------------
+# TERMINAL DEMOS (VHS by Charm)
+# ---------------------------------------------------------------------
+terminal:
+  theme: "Catppuccin Macchiato"   # dark slate look. Alternative: "Dracula"
+  font_size: 32                   # 32 at 1920x1080 = same look as 22 at 1280x720
+  width: 1920
+  height: 1080
+  padding: 50
+  typing_speed: 150ms             # slow enough for beginners to follow
+  playback_speed: 0.75            # 0.75 = a bit slower than real time
+  pause_after_output: 5           # seconds to keep each output on screen
+
+# ---------------------------------------------------------------------
+# FINAL VIDEO
+# ---------------------------------------------------------------------
+video:
+  width: 1920
+  height: 1080
+  fps: 30
+  scene_gap: 0.8                  # seconds of quiet after each scene's narration
+  avatar: "assets/instructor.png" # your photo; skipped if the file does not exist
+  avatar_position: bottom-right   # bottom-right | top-right | bottom-left | top-left
+  avatar_size: 200
+  burn_captions: false            # true = subtitles always visible in the video
+  crf: 18                         # quality: lower = better + bigger file (18-23)
+  preset: medium
