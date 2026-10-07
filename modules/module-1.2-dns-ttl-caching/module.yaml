@@ -8,7 +8,9 @@
 # Edit this file, then rebuild:   ./build.sh 1.2 --draft
 #
 # Slide text = the approved PDF (Linux_DNS_and_TTL_Caching_Architecture.pdf).
-# Narration  = the approved ElevenLabs script, split per slide.
+# Narration  = the approved ElevenLabs script, WORD FOR WORD, split per slide (nothing added or changed).
+# Terminal demos = the approved dns_v2_cache.tape commands (scenes 8-9), plus a short demo
+#   for every other part of the script (marked # NEW) - the video is terminal + voice only.
 # Lines marked  # NEW  or  # CHANGED  were added while organising - review them.
 # =====================================================================
 
@@ -33,10 +35,14 @@ scenes:
   - id: title
     slide:
       type: title
+    demo:                        # NEW: on screen while this part of the script is spoken
+      commands:
+        - comment: "# Module 1.2: Linux DNS and Caching Made Simple"
+          run: "ls -l /etc/hosts /etc/resolv.conf"
+          wait: 4
     narration: |
-      Welcome to Module 1.2: Linux DNS and TTL Caching.
+      Welcome to Module 1.2: Linux DNS and Caching Made Simple.
       In this lesson, we are going to look at how Linux translates easy-to-read domain names into machine-readable IP addresses, and why this simple step is so critical for keeping your log pipelines running smoothly.
-    # CHANGED: first line said "Linux DNS and Caching Made Simple" - now matches the slide title.
 
   # ------------------------------------------------------------- 2
   - id: ip-vs-dns
@@ -61,6 +67,11 @@ scenes:
           - "Human-readable domain name dynamically mapped to IP addresses."
           - "Allows seamless IP changes without updating application configurations."
           - "Requires continuous translation via local and public DNS resolvers."
+    demo:                        # NEW
+      commands:
+        - comment: "# A name (google.com) and the IP address behind it"
+          run: "dig google.com +short | head -1"
+          wait: 4
     narration: |
       Every computer on a network has an IP address, like 142.250.190.46. It works just like a physical street address. Routers use it to deliver data quickly across the internet. But humans are terrible at remembering long strings of numbers, so we use domain names like google.com instead. DNS, or the Domain Name System, acts as the automatic phone book that translates human names into computer IP addresses behind the scenes.
 
@@ -83,6 +94,11 @@ scenes:
         - - "3. Cluster Failover"
           - "Database and indexer clusters rely on dynamic DNS updates to route traffic to active master nodes during node outages."
           - "[red]**Stale Routing:**[/red]\nHigh TTL values cause agents to send logs to decommissioned nodes."
+    demo:                        # NEW
+      commands:
+        - comment: "# A forwarder cannot send logs to a name that does not resolve"
+          run: "getent hosts splunk-server.local || echo 'Lookup failed: logs stay on this machine'"
+          wait: 4
     narration: |
       In enterprise log pipelines, DNS is everywhere. For example, log forwarders send security events to a Splunk server name, like splunk-server.local. If your Linux system cannot translate that server name into an IP address, data stops moving instantly. Logs pile up on the local machine, filling up hard drive space until the connection is restored.
 
@@ -101,9 +117,13 @@ scenes:
       takeaways:
         - "**First Query:** Client sends request to 8.8.8.8 -> Resolves IP (142.250.190.46) -> Stores TTL timer in cache."
         - "**Subsequent Connections:** Resolves directly from local cache instantly without hitting the external network."
+    demo:                        # NEW
+      commands:
+        - comment: "# The order Linux uses: files (/etc/hosts) first, then dns"
+          run: "grep '^hosts:' /etc/nsswitch.conf"
+          wait: 3
     narration: |
-      Here is the big picture. The first time your computer needs an address, it asks Google's public DNS server at 8.8.8.8. Google answers with the IP address, and your computer saves that answer in memory. The next time, it reuses the saved answer instantly, without asking the network again.
-    # NEW: the approved script had no narration for this diagram slide.
+      So, how does Linux actually look up an address? It follows four simple steps.
 
   # ------------------------------------------------------------- 5
   - id: resolution-steps
@@ -119,8 +139,20 @@ scenes:
         - ["Step 2", "**Local Cache & Hosts**", "Linux NSS (Name Service Switch) checks local DNS cache (systemd-resolved) and static overrides in /etc/hosts."]
         - ["Step 3", "**Resolver Config**", "If uncached, glibc reads nameserver directives in /etc/resolv.conf (pointing to 8.8.8.8)."]
         - ["Step 4", "**Upstream DNS Query**", "UDP packet sent to 8.8.8.8:53. Google DNS resolves the domain and returns IP address 142.250.190.46 along with TTL."]
+    demo:                        # NEW
+      setup: |
+        echo 'nameserver 8.8.8.8' > /tmp/clean_resolv.conf
+      commands:
+        - comment: "# Step 2: the local static overrides file"
+          run: "head -3 /etc/hosts"
+          wait: 3
+        - comment: "# Step 3: the DNS helper Linux asks next"
+          run: "cat /tmp/clean_resolv.conf"
+          wait: 3
+        - comment: "# Step 4: Google DNS returns the IP address"
+          run: "dig @8.8.8.8 google.com +short | head -1"
+          wait: 3
     narration: |
-      So, how does Linux actually look up an address? It follows four simple steps.
       First, an application or log forwarder asks the operating system for an IP address.
       Second, Linux checks its own local memory cache and its local static overrides file, called /etc/hosts.
       Third, if the address is not found locally, Linux opens the /etc/resolv.conf file to find the IP address of its designated network DNS helper, such as Google's public DNS at 8.8.8.8.
@@ -148,6 +180,16 @@ scenes:
           nameserver 8.8.8.8
           nameserver 8.8.4.4
           search internal.cloud.net
+    demo:                        # NEW
+      setup: |
+        echo 'nameserver 8.8.8.8' > /tmp/clean_resolv.conf
+      commands:
+        - comment: "# File 1: /etc/hosts (checked first)"
+          run: "head -3 /etc/hosts"
+          wait: 4
+        - comment: "# File 2: the DNS servers to ask"
+          run: "cat /tmp/clean_resolv.conf"
+          wait: 4
     narration: |
       Linux relies on two primary configuration files for this process. The first file is /etc/hosts. This is a simple list stored directly on your machine. Linux always checks /etc/hosts first. If a domain name is listed here, Linux uses that IP immediately without ever reaching out to the network. The second file is /etc/resolv.conf. This file lists external DNS server addresses, like nameserver 8.8.8.8, which Linux uses whenever a domain name isn't found in your local hosts file.
 
@@ -165,6 +207,11 @@ scenes:
         - "**Zero Latency:** Cached lookups resolve in < 1ms locally without sending network packets."
         - "**Bandwidth Savings:** Prevents millions of redundant DNS packets during high log volume streams."
         - "**Resilience:** If 8.8.8.8 is temporarily unreachable, cached records allow log forwarders to continue operating."
+    demo:                        # NEW
+      commands:
+        - comment: "# The TTL: seconds Linux may remember this IP"
+          run: "dig +noall +answer google.com | head -1"
+          wait: 5
     narration: |
       To save time and network traffic, DNS uses something called TTL, or Time-To-Live. TTL is simply a memory countdown timer sent alongside the IP address. It tells your computer how many seconds it can hold that IP in memory. As long as the timer is active, subsequent connections connect instantly in zero milliseconds, without generating any extra network traffic.
 
@@ -189,14 +236,13 @@ scenes:
         - "Multiple nameserver lines provide fallback redundancy if the primary server fails to respond."
     demo:                        # shown in the video (recorded with VHS)
       setup: |
-        printf '# Dynamic resolv.conf file generated by systemd-resolved\nnameserver 8.8.8.8\nnameserver 8.8.4.4\nsearch internal.cloud.net\n' > /tmp/clean_resolv.conf
+        echo 'nameserver 8.8.8.8' > /tmp/clean_resolv.conf
       commands:
         - comment: "# Step 1: Inspect local DNS resolver pointing to Google DNS (8.8.8.8)"
           run: "cat /tmp/clean_resolv.conf"
           wait: 5
     narration: |
-      Let's test this in the terminal. When you run cat /etc/resolv.conf, you can see your active nameserver address. In this demo we print a clean copy of that file, so you can focus on the important lines. The line nameserver 8.8.8.8 tells Linux to send its questions to Google's public DNS. The second nameserver line is a backup, in case the first one does not answer.
-    # NEW: sentences 3 to 5 explain the demo (from the slide's takeaways).
+      Let's test this in the terminal. When you run cat /etc/resolv.conf, you can see your active nameserver address.
 
   # ------------------------------------------------------------- 9
   - id: demo-dig
@@ -228,13 +274,10 @@ scenes:
     demo:
       commands:
         - comment: "# Step 2: Query domain IP resolution and inspect the TTL cache timer"
-          run: "dig google.com +short"
-          wait: 4
-        - run: "dig google.com | grep -A 2 'ANSWER SECTION'"
-          wait: 6
+          run: "dig google.com | grep -A 2 'ANSWER SECTION'"
+          wait: 5
     narration: |
-      When you run dig google.com, you will see the resolved IP address along with the TTL timer counting down. First, dig with the plus short option prints only the IP address. Then the answer section shows the full record. The number before the letters IN A is the TTL, the number of seconds Linux may keep this answer in memory.
-    # NEW: sentences 2 to 4 explain the demo. CHANGED: the demo also runs "dig google.com +short" (listed in prompt v2.2).
+      When you run dig google.com, you will see the resolved IP address along with the TTL timer counting down.
 
   # ------------------------------------------------------------- 10
   - id: outage-framework
@@ -256,6 +299,14 @@ scenes:
           - "Balances query caching with swift failover during infrastructure IP migration."
           - "[red]**Blackhole Traffic:**[/red]\nTTL set too high (e.g. 86400s) sends logs to dead IPs after failover.\n**Fix:** `sudo resolvectl flush-caches`"
       # NEW: the "**Fix:**" lines (prompt v2.2 asks for a Real-World Fix command; the approved PDF had none).
+    demo:                        # NEW
+      commands:
+        - comment: "# Broken DNS server: the lookup fails"
+          run: "dig @192.0.2.1 google.com +time=1 +tries=1 | tail -2"
+          wait: 3
+        - comment: "# Working DNS server: the lookup succeeds"
+          run: "dig @8.8.8.8 google.com +short | head -1"
+          wait: 3
     narration: |
       If your DNS configuration breaks, your data pipeline freezes. But by understanding how /etc/hosts and /etc/resolv.conf work together, you can quickly diagnose connection drops and ensure log forwarders deliver data reliably every time.
 
@@ -267,9 +318,8 @@ scenes:
       title: "KNOWLEDGE CHECK: Quiz & Embedded AI Explainer"
       subtitle: "Interactive student evaluation with instant automated feedback."
       question: 1            # shows quiz question 1 (from the quiz section below)
-    narration: |
-      Quick knowledge check. Which file does Linux check first when it looks up a hostname? The answer is /etc/hosts. Linux checks its local file before it asks any DNS server on the network.
-    # NEW: the approved script had no narration for the quiz slide.
+    narration: ""            # the approved script has no quiz narration
+    hold: 8                  # show the quiz slide silently for 8 seconds
 
   # ------------------------------------------------------------- 12
   - id: lab-and-next
@@ -284,6 +334,11 @@ scenes:
         - "Execute a dig query against google.com and locate the TTL countdown timer."
         - "Add a static mapping in /etc/hosts mapping 127.0.0.1 to splunk-master.local and test resolution using ping."
       next_text: "Now that we understand how network destinations are resolved, we will explore how system logs are generated in /var/log and managed by journalctl before being ingested into Splunk and ClickHouse."
+    demo:                        # NEW
+      commands:
+        - comment: "# Your turn: open the Killercoda lab next to this video"
+          run: "echo 'Lab: cat /etc/resolv.conf -> dig google.com -> edit /etc/hosts'"
+          wait: 3
     narration: |
       Now, head over to the interactive Killercoda terminal on your screen and complete the hands-on exercise. See you in the next lesson!
 

@@ -13,6 +13,13 @@ Copy from it when in doubt. `./build.sh X.Y --check` tells you exactly which lin
 - `key: |` followed by indented lines = multi-line text (line breaks are kept).
 - `# ...` is a comment (ignored), except inside a `|` block, where it is normal text.
 
+## Locking an approved voice script
+
+Once you approve a module's narration, save the full script as `narration_approved.txt` in the module folder
+(plain text, any line breaks). From then on the build checks that the narration in `module.yaml` matches it
+**word for word** and stops if anything differs, so the voice can never drift by accident.
+Module 1.2 already has one.
+
 ## Text markup (slides only, never in narration)
 
 | Write | Shows as |
@@ -52,8 +59,8 @@ module:
 
 ```yaml
   - id: demo-dig                 # lowercase-with-dashes, unique
-    slide: { ... }               # picture for the PDF (and the video, if there is no demo)
-    demo: { ... }                # optional: terminal recording used in the video instead of the slide
+    slide: { ... }               # the slide for the student PDF (not in the video)
+    demo: { ... }                # the terminal commands shown in the video while this narration plays
     narration: |                 # plain spoken English: no markup, no symbols
       When you run dig google.com, you will see...
     hold: 5                      # optional: minimum seconds on screen (e.g. a silent scene)

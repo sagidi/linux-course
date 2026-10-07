@@ -16,6 +16,24 @@ from common import (REPO_ROOT, fail, find_module_dir, load_course, load_yaml,
 from validate import check_module, print_report
 
 
+def check_approved_narration(mdir, module):
+    """If narration_approved.txt exists, the voice text must match it word for word."""
+    approved_file = mdir / "narration_approved.txt"
+    if not approved_file.exists():
+        return
+    approved = approved_file.read_text(encoding="utf-8").split()
+    spoken = " ".join(str(sc.get("narration") or "") for sc in module["scenes"]).split()
+    if spoken == approved:
+        say("  narration matches narration_approved.txt word for word")
+        return
+    i = next((k for k, (a, b) in enumerate(zip(spoken, approved)) if a != b),
+             min(len(spoken), len(approved)))
+    fail("The narration in module.yaml is different from narration_approved.txt\n"
+         f"  approved: ...{' '.join(approved[max(0, i - 6):i + 8])}...\n"
+         f"  in yaml:  ...{' '.join(spoken[max(0, i - 6):i + 8])}...\n"
+         "Fix module.yaml, or update narration_approved.txt if you approved a new script.")
+
+
 def main():
     ap = argparse.ArgumentParser(description="Build one course module.")
     ap.add_argument("module", help="module number (e.g. 1.2) or folder name")
@@ -39,6 +57,7 @@ def main():
     step(1, total, "Checking module.yaml")
     if not print_report(check_module(module), "module.yaml"):
         fail("Fix the problems above, then run the build again.")
+    check_approved_narration(mdir, module)
     if args.check:
         return
 
@@ -49,7 +68,16 @@ def main():
     pdf = publish / f"{name}_Slides.pdf"
 
     step(2, total, f"Making {len(slide_scenes)} slides")
-    pngs = slides.build_slides(module, pdf, None if args.slides else work / "slides", slide_scenes)
+    vcfg = course.get("video", {})
+    terminal_only = vcfg.get("mode", "terminal") == "terminal"
+    if terminal_only and not args.slides:
+        missing = [sc["id"] for sc in scenes
+                   if str(sc.get("narration") or "").strip() and not sc.get("demo")]
+        if missing:
+            fail("The video is terminal-only (course.yaml -> video.mode: terminal), so every scene with "
+                 "narration needs a 'demo'. Missing in: " + ", ".join(missing))
+    png_dir = None if (args.slides or terminal_only) else work / "slides"
+    pngs = slides.build_slides(module, pdf, png_dir, slide_scenes)
     say(f"  saved {pdf.relative_to(REPO_ROOT)}")
     if args.slides:
         say(f"\nDone in {time.time() - started:.0f}s. Open the PDF to review the slides.")
@@ -65,9 +93,12 @@ def main():
     if not clips:
         say("  (this module has no terminal demos)")
 
+    # Terminal-only video: just the scenes with a demo (slides stay in the PDF).
+    if terminal_only:
+        scenes = [sc for sc in scenes if sc["id"] in clips]
     visuals, png_iter = {}, iter(pngs)
-    for sc in scenes:
-        png = next(png_iter) if sc.get("slide") else None
+    for sc in module["scenes"]:
+        png = next(png_iter) if (sc.get("slide") and pngs) else None
         visuals[sc["id"]] = ("clip", clips[sc["id"]]) if sc["id"] in clips else ("image", png)
 
     step(4, total, "Making the voiceover")
@@ -80,7 +111,6 @@ def main():
     suffix = "DRAFT" if args.draft else "Final"
     out_video = publish / f"{name}_{suffix}.mp4"
     srt, vtt = publish / f"{name}_Captions.srt", publish / f"{name}_Captions.vtt"
-    vcfg = course.get("video", {})
     avatar = vcfg.get("avatar")
     length = video.assemble(scenes, visuals, audios, vcfg, work, out_video, srt, vtt,
                             REPO_ROOT / avatar if avatar else None)

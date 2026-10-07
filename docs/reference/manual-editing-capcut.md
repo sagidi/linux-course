@@ -2,7 +2,7 @@
 
 # Manual editing with CapCut or Descript (optional)
 
-**You do not need this.** `./build.sh` already lines up slides, terminal demos and voice automatically.
+**You do not need this.** `./build.sh` already lines up the terminal demos and the voice automatically.
 Use this only if you want hand-made extras: zoom-ins, arrows, callouts, music, or a custom intro.
 
 ## Get the pieces

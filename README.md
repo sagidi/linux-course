@@ -6,7 +6,7 @@ voiceover, captions, quiz and a hands-on lab, with almost no manual work.
 ```
  ┌──────────────┐   ┌──────────────┐   ┌─────────────────────────────────────────┐   ┌─────────────┐
  │ 1. PROMPT    │──>│ 2. AI ANSWER │──>│ 3. ./build.sh  (automatic)              │──>│ 4. PUBLISH  │
- │ new-module.sh│   │ module.yaml  │   │ slides + terminal video + voice + sync  │   │ LMS + lab   │
+ │ new-module.sh│   │ module.yaml  │   │ terminal video + voice (synced) + PDF   │   │ LMS + lab   │
  └──────────────┘   └──────────────┘   └─────────────────────────────────────────┘   └─────────────┘
        you             you review                    computer does it                    you upload
 ```
@@ -69,10 +69,10 @@ More build options: `--check` (check the file only) and `--slides` (slides PDF o
 | Part | Who | How |
 |------|-----|-----|
 | Lesson content, slides text, narration, demo commands, quiz, lab | **AI** writes, **you** review | [Master prompt](prompts/module_prompt.md) → `module.yaml` |
-| Slides PDF + slide images | automatic | ReportLab (same look as the approved Module 1.2 PDF) |
+| Slides PDF (student download, not in the video) | automatic | ReportLab (same look as the approved Module 1.2 PDF) |
 | Terminal demo videos | automatic | VHS by Charm, Catppuccin Macchiato theme |
 | Voiceover | automatic | ElevenLabs API (final) or Piper (free draft) |
-| Syncing slides, terminal and voice into one video | automatic | FFmpeg: each scene lasts exactly as long as its narration |
+| Lesson video = live terminal + voice, in sync | automatic | FFmpeg: each part of the script plays over its own terminal demo |
 | Captions (.srt/.vtt), quiz file, narration script | automatic | from `module.yaml` |
 | Killercoda lab files | automatic | from `module.yaml` |
 | Upload to the LMS + Killercoda | **you** | [Step 8](docs/08-publish-the-module.md) (about 15 minutes) |

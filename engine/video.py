@@ -37,7 +37,7 @@ def make_avatar(src, dst, size):
     return dst
 
 
-def encode_segment(visual, audio, duration, clip_len, vcfg, avatar, out):
+def encode_segment(visual, audio, duration, clip_len, vcfg, avatar, out, speed=1.0):
     W, H, fps = int(vcfg.get("width", 1920)), int(vcfg.get("height", 1080)), int(vcfg.get("fps", 30))
     kind, path = visual
     cmd = ["ffmpeg", "-y", "-v", "error"]
@@ -48,8 +48,10 @@ def encode_segment(visual, audio, duration, clip_len, vcfg, avatar, out):
     else:
         cmd += ["-i", str(path)]
         pad_color = "0x24273A"
-        extra = max(0.0, duration - clip_len)
+        extra = max(0.0, duration - clip_len / speed)
         hold = f",tpad=stop_mode=clone:stop_duration={extra:.3f}" if extra > 0 else ""
+        if speed != 1.0:
+            hold = f",setpts=PTS/{speed:.4f}" + hold
     if audio:
         cmd += ["-i", str(audio)]
     else:
@@ -135,11 +137,17 @@ def assemble(scenes, visuals, audios, vcfg, work_dir, out_video, srt_path, vtt_p
         a_len = media_duration(audio) if audio else 0.0
         kind, path = visuals[sc["id"]]
         clip_len = media_duration(path) if kind == "clip" else 0.0
-        duration = max(a_len + gap, clip_len, float(sc.get("hold", 0) or 0), 1.0)
+        # A terminal clip longer than its narration is sped up (up to max_speedup)
+        # so the typing keeps pace with the voice; any rest becomes a short silent tail.
+        speed = 1.0
+        if kind == "clip" and a_len and clip_len > a_len + gap:
+            speed = min(clip_len / (a_len + gap), float(vcfg.get("max_speedup", 1.5)))
+        duration = max(a_len + gap, clip_len / speed, float(sc.get("hold", 0) or 0), 1.0)
         seg = seg_dir / f"{i + 1:02d}-{sc['id']}.mp4"
         say(f"  [{i + 1}/{len(scenes)}] {sc['id']}: {duration:5.1f}s "
-            f"({'terminal demo' if kind == 'clip' else 'slide'})")
-        encode_segment((kind, path), audio, duration, clip_len, vcfg, avatar, seg)
+            f"({'terminal' if kind == 'clip' else 'slide'}"
+            f"{f', typing x{speed:.2f}' if speed != 1.0 else ''})")
+        encode_segment((kind, path), audio, duration, clip_len, vcfg, avatar, seg, speed)
         segs.append(seg)
 
         chunks = split_captions(sc.get("narration") or "")

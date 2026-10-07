@@ -60,7 +60,7 @@ run the command again, then reopen the PDF. Repeat until it looks right.
 
 Open `Module_1_3_DRAFT.mp4` and watch it **all the way through**:
 
-- [ ] Each slide matches what the voice is saying.
+- [ ] Each terminal demo matches what the voice is saying at that moment.
 - [ ] The terminal demos show the right commands and real output.
 - [ ] Pacing feels right, not rushed, not too slow.
 - [ ] Words are pronounced well (see below).
