@@ -1,0 +1,46 @@
+# Build a module in the cloud (GitHub Actions) - no computer needed.
+# How to use: docs/reference/cloud-build-github-actions.md
+# It only runs when you start it by hand (Actions tab -> "Build a module" -> Run workflow).
+name: Build a module
+
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Module number, for example 1.2"
+        required: true
+        default: "1.2"
+      mode:
+        description: "draft = free voice, final = ElevenLabs voice (needs the ELEVENLABS_API_KEY secret)"
+        type: choice
+        options: [draft, final]
+        default: draft
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      MODULE: ${{ inputs.module }}
+      MODE: ${{ inputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the tools
+        run: ./setup.sh
+
+      - name: Build the module
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: |
+          if [ "$MODE" = "final" ]; then ./build.sh "$MODULE"; else ./build.sh "$MODULE" --draft; fi
+
+      - name: Upload the results
+        uses: actions/upload-artifact@v4
+        with:
+          name: module-${{ inputs.module }}-${{ inputs.mode }}
+          path: modules/module-${{ inputs.module }}-*/build/publish/
+          retention-days: 14
