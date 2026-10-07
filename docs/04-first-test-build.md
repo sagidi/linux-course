@@ -55,7 +55,7 @@ explorer.exe modules/module-1.2-dns-ttl-caching/build/publish
 
 | File | What it is |
 |------|-----------|
-| `Module_1_2_DRAFT.mp4` | The full lesson: slides + live terminal + voice, all in sync |
+| `Module_1_2_DRAFT.mp4` | The lesson video: live terminal + voice, in sync (no slides) |
 | `Module_1_2_Slides.pdf` | Student download |
 | `Module_1_2_Captions.srt` / `.vtt` | Subtitles |
 | `Module_1_2_Quiz.md` | 3 quiz questions with answers + feedback |
@@ -65,8 +65,8 @@ explorer.exe modules/module-1.2-dns-ttl-caching/build/publish
 
 Watch `Module_1_2_DRAFT.mp4` from start to finish. Check that:
 
-- [ ] Each slide stays on screen while the voice talks about it, then moves on.
-- [ ] Scenes 8 and 9 show the **dark terminal** typing `cat` and `dig` commands with real output.
+- [ ] The terminal shows commands that match what the voice is saying, part by part.
+- [ ] The whole video is the **dark terminal** typing real commands (`cat`, `dig`, ...) with real output.
 - [ ] The voice is clear (Piper is a good free voice. The final ElevenLabs voice is better).
 
 ## 5. (Optional) Build the final version now
@@ -78,7 +78,7 @@ If you saved your ElevenLabs key in [step 3](03-create-accounts-and-keys.md#a-el
 ```
 
 It prints how many characters it sends to ElevenLabs (about 4,000) and creates `Module_1_2_Final.mp4`.
-Slides and terminal recordings are reused, so this is quicker.
+Terminal recordings are reused, so this is quicker.
 
 > **Module 1.2's voice = your approved script, word for word.** It is saved in
 > `modules/module-1.2-dns-ttl-caching/narration_approved.txt`, and the build stops if the narration in
@@ -89,7 +89,7 @@ Slides and terminal recordings are reused, so this is quicker.
 
 ## ✅ Done when
 
-`Module_1_2_DRAFT.mp4` plays with slides, terminal demos and voice in sync. **Your pipeline works.**
+`Module_1_2_DRAFT.mp4` plays the terminal demos with the voice in sync. **Your pipeline works.**
 From now on, every module is made the same way.
 
 ## ❌ If something goes wrong

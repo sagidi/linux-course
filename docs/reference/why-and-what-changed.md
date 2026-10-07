@@ -77,7 +77,9 @@ module. You review one readable file instead of three programs, and a mistake ca
 - `module.yaml` reproduces its slides word for word, in 16:9.
 - **Voice:** the approved ElevenLabs script is used **word for word** (saved in `narration_approved.txt`;
   the build refuses to run if the narration differs). It is split across the slides it talks about; the quiz
-  slide is shown silently for 8 seconds because the script has no quiz part.
+  slide is not in the video (the quiz lives in the LMS) because the script has no quiz part.
+- **Video = terminal + voice only.** Slides are the student PDF. Every part of the script plays over its own short
+  terminal demo (marked `# NEW`); scenes 8-9 are the approved `dns_v2_cache.tape` commands.
 - **Terminal demos:** the approved `dns_v2_cache.tape` commands, recorded at 1920×1080 (font 32) instead of
   1280×720 (font 22) so the video is full HD. Same look, sharper.
 - Additions (slides/quiz only, never spoken), marked `# NEW`: the "Fix:" commands in the outage table (asked

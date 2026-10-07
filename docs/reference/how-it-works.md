@@ -31,21 +31,25 @@ To change anything, edit that file and rebuild. Never edit the generated files.
 
 A module is a list of **scenes** (12 by default). Each scene has:
 
-- a **picture**: a slide, or a terminal demo (`demo:`), or both (the slide goes in the PDF, the demo in the video);
-- its **narration**: the words spoken while that picture is on screen.
+- a **slide**: goes in the student PDF only (not in the video);
+- a **terminal demo** (`demo:`): the commands typed live on screen, which is what the video shows;
+- its **narration**: the words spoken while that demo is on screen.
 
-The build measures each scene's narration and shows the picture for **exactly that long** (plus a short
-pause, `video.scene_gap`). For a terminal demo, the recording plays while the voice talks: if the voice is
-longer, the last frame is held; if the recording is longer, the voice is followed by silence.
-The scenes are then joined. That is why the slides, terminal and voice always line up, with no timeline
-editing. It does automatically what you would otherwise do by hand in CapCut ([manual method](manual-editing-capcut.md)).
+The video is **terminal + voice only** (`course.yaml` → `video.mode: terminal`). Set `video.mode: slides`
+if you ever want slides shown in the video between demos.
+
+The build measures each scene's narration and shows its terminal demo for **exactly that long** (plus a short
+pause, `video.scene_gap`). If the demo is longer than the voice, it is sped up a little (at most
+`video.max_speedup`, 1.5×) so the typing keeps pace; if the voice is longer, the last frame stays on screen.
+The scenes are then joined. That is why the terminal and voice always line up, with no timeline editing.
+It does automatically what you would otherwise do by hand in CapCut ([manual method](manual-editing-capcut.md)).
 
 ## What `./build.sh` does, stage by stage
 
 | Stage | What happens | Code |
 |-------|--------------|------|
 | 1. Check | Checks `module.yaml`: required fields, text lengths, unsafe or freezing demo commands, quiz answers | `engine/validate.py` |
-| 2. Slides | Draws each slide (16:9, same look as the approved Module 1.2 PDF), checks the text fits, saves the PDF and one 1920×1080 PNG per slide | `engine/slides.py` |
+| 2. Slides | Draws each slide (16:9, same look as the approved Module 1.2 PDF), checks the text fits, saves the student PDF | `engine/slides.py` |
 | 3. Demos | Writes a `.tape` file per demo with the standard look from `course.yaml`, and VHS records it | `engine/tapes.py` |
 | 4. Voice | One audio file per scene: ElevenLabs (final) or Piper/espeak (draft). Uses the previous/next scene text so the voice flows naturally | `engine/voice.py` |
 | 5. Video | Turns each scene into a video segment of the right length, adds your photo if present, joins them, writes captions | `engine/video.py` |

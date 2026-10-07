@@ -68,7 +68,16 @@ def main():
     pdf = publish / f"{name}_Slides.pdf"
 
     step(2, total, f"Making {len(slide_scenes)} slides")
-    pngs = slides.build_slides(module, pdf, None if args.slides else work / "slides", slide_scenes)
+    vcfg = course.get("video", {})
+    terminal_only = vcfg.get("mode", "terminal") == "terminal"
+    if terminal_only and not args.slides:
+        missing = [sc["id"] for sc in scenes
+                   if str(sc.get("narration") or "").strip() and not sc.get("demo")]
+        if missing:
+            fail("The video is terminal-only (course.yaml -> video.mode: terminal), so every scene with "
+                 "narration needs a 'demo'. Missing in: " + ", ".join(missing))
+    png_dir = None if (args.slides or terminal_only) else work / "slides"
+    pngs = slides.build_slides(module, pdf, png_dir, slide_scenes)
     say(f"  saved {pdf.relative_to(REPO_ROOT)}")
     if args.slides:
         say(f"\nDone in {time.time() - started:.0f}s. Open the PDF to review the slides.")
@@ -84,9 +93,12 @@ def main():
     if not clips:
         say("  (this module has no terminal demos)")
 
+    # Terminal-only video: just the scenes with a demo (slides stay in the PDF).
+    if terminal_only:
+        scenes = [sc for sc in scenes if sc["id"] in clips]
     visuals, png_iter = {}, iter(pngs)
-    for sc in scenes:
-        png = next(png_iter) if sc.get("slide") else None
+    for sc in module["scenes"]:
+        png = next(png_iter) if (sc.get("slide") and pngs) else None
         visuals[sc["id"]] = ("clip", clips[sc["id"]]) if sc["id"] in clips else ("image", png)
 
     step(4, total, "Making the voiceover")
@@ -99,7 +111,6 @@ def main():
     suffix = "DRAFT" if args.draft else "Final"
     out_video = publish / f"{name}_{suffix}.mp4"
     srt, vtt = publish / f"{name}_Captions.srt", publish / f"{name}_Captions.vtt"
-    vcfg = course.get("video", {})
     avatar = vcfg.get("avatar")
     length = video.assemble(scenes, visuals, audios, vcfg, work, out_video, srt, vtt,
                             REPO_ROOT / avatar if avatar else None)

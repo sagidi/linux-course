@@ -24,7 +24,7 @@ You run **one command** and all of these are installed and tested automatically:
 |------|--------------|
 | **VHS** (by Charm) + **ttyd** | Records the terminal demos as video from a script (no screen recording, no typos) |
 | **Chromium** | Used by VHS in the background (VHS downloads it on first use) |
-| **FFmpeg** | Joins slides, terminal clips and voice into the final video |
+| **FFmpeg** | Joins the terminal clips and the voice into the final video |
 | **Python 3** + ReportLab, PyYAML, Requests, Pillow | Makes the slides and talks to ElevenLabs |
 | **Piper** + voice `en_US-lessac-medium` | Free, natural-sounding voice for **draft** videos |
 | **espeak-ng** | Backup free voice (robotic) if Piper is missing |

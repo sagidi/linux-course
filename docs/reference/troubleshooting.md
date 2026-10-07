@@ -62,7 +62,8 @@ Then re-run the command that failed. Error messages from the build start with `E
 
 | Problem | Fix |
 |---------|-----|
-| Slide changes too early or late | It follows the narration. Move the sentence to the right scene in `module.yaml` |
+| A demo appears too early or late | It follows the narration. Move the sentence to the right scene in `module.yaml` |
+| `every scene with narration needs a 'demo'` | Add a short `demo:` to that scene (the video is terminal-only) |
 | Too fast / too slow overall | `course.yaml`: `video.scene_gap`, `terminal.typing_speed`, `terminal.playback_speed` |
 | No photo in the corner | Check that `assets/instructor.png` exists and `course.yaml` → `video.avatar` points to it |
 | Want subtitles always visible | `course.yaml` → `video.burn_captions: true` |

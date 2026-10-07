@@ -50,9 +50,13 @@ For every key file, setting or command, give the operational impact (scene 10):
 * **If NOT Done (Failure Scenario):** the exact failure in plain English (e.g. the forwarder cannot resolve the destination, the data pipeline breaks and local disk fills up).
 * **Real-World Fix:** the exact Linux command that fixes or checks it - written at the end of the "If NOT Done" cell as `**Fix:** `command``.
 
-### 4. TERMINAL DEMOS (recorded automatically with VHS)
+### 4. TERMINAL DEMOS (recorded automatically with VHS) - THE VIDEO IS TERMINAL + VOICE ONLY
+The lesson video shows **only the live terminal** while the narration plays; slides are a separate student PDF.
+So **every scene with narration (all except the quiz) needs a `demo`** whose commands show what that scene's
+narration is talking about (e.g. `head -3 /etc/hosts` while the voice explains /etc/hosts).
 You only write the commands. Theme, font, size, typing speed and pauses are applied automatically. Rules:
-* Two demo scenes (8 and 9), each with 1 to 3 commands. The first command of each demo has a `comment` like `"# Step 1: Inspect ..."` (it is typed on screen first).
+* Each demo has 1 to 3 commands, each with a short `comment` like `"# Step 1: Inspect ..."` (typed on screen first; keep it under 60 characters).
+* Scenes 8 and 9 are the main hands-on demos; the other demos are short (one or two commands).
 * Commands run for real on Ubuntu 24.04 as a normal user: **no `sudo`, no passwords**, nothing that changes the system.
 * Every command must finish by itself within 10 seconds: no `vim`/`nano`/`less`/`top`, use `ping -c 3`, `journalctl --no-pager -n 10`, `systemctl status --no-pager`, `| head`.
 * Keep each output under 15 lines and 90 characters wide (trim with `grep`, `head`, `awk`).
@@ -83,10 +87,10 @@ You only write the commands. Theme, font, size, typing speed and pauses are appl
 | 5 | `step-by-step` | `table` | Step / Component / Action Taken (3-5 rows) |
 | 6 | `key-files` | `two_columns` | The two most important files/settings, each with a short `code` example |
 | 7 | `deep-dive` | `panel` | One mechanism explained, with 3 "why it matters" bullets |
-| 8 | `demo-1` | `terminal` + `demo` | Slide: expected terminal output. Demo: the commands, recorded live |
+| 8 | `demo-1` | `terminal` + `demo` | Slide: expected terminal output. Demo: the main commands, recorded live |
 | 9 | `demo-2` | `terminal` + `demo` | Same, second demo (slide may show 2 panels side by side) |
 | 10 | `outage-framework` | `table` | Configuration / Why Required / If NOT Done (Outage Impact) + **Fix:** |
-| 11 | `knowledge-check` | `quiz` | Shows quiz question 1 (narration may be `""` with `hold: 8` for a silent thinking pause) |
+| 11 | `knowledge-check` | `quiz` | Shows quiz question 1. Narration `""` and `hold: 8`, no demo (the quiz is not in the video) |
 | 12 | `lab-and-next` | `lab` | Lab challenge steps + preview of the next module |
 
 Slide numbers: scene 2 is `"{{NUMBER}}.1"`, scene 3 is `"{{NUMBER}}.2"` ... scene 12 is `"{{NUMBER}}.11"`.
@@ -120,7 +124,7 @@ Slide titles: `"UPPERCASE LABEL: Normal Case Detail"`, like the example.
 1. Exactly 12 scenes in the order above, each with `narration` (only the quiz scene may be silent with `hold`).
 2. Every command in `demo` and `lab` is real, correct and safe, and its output on the slide is realistic.
 3. Narration is plain spoken English (no symbols or markup) and 450-700 words in total.
-4. Every slide stays within the size limits.
+4. Every slide stays within the size limits, and every narrated scene (all but the quiz) has a `demo`.
 5. The answer is one ```` ```yaml ```` block and nothing else.
 
 ---

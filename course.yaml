@@ -64,6 +64,9 @@ terminal:
 # FINAL VIDEO
 # ---------------------------------------------------------------------
 video:
+  mode: terminal                  # terminal = video is the live terminal + voice (slides = student PDF only)
+                                  # slides   = video also shows the slides between terminal demos
+  max_speedup: 1.5                # a demo longer than its narration is sped up at most this much
   width: 1920
   height: 1080
   fps: 30
