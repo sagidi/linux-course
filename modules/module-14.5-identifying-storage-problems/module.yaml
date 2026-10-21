@@ -1,0 +1,350 @@
+# =====================================================================
+# MODULE 14.5 - Identifying Storage Problems
+#
+# This ONE file is the source for everything in this module:
+#   slides PDF + slide images, terminal demo videos, voiceover,
+#   final video, captions, quiz and the Killercoda lab.
+#
+# Edit this file, then rebuild:   ./build.sh 14.5 --draft
+# =====================================================================
+
+module:
+  number: "14.5"
+  label: "LINUX OPERATIONAL CAPSTONE"
+  title: "Identifying Storage Problems"
+  subtitle: "Finding Full Disks, Exhausted Inodes and Hidden Deleted Files Before They Stop Log Ingestion in Splunk and ClickHouse"
+  info:
+    - heading: "Target Infrastructure:"
+      text: "Splunk Forwarders & Indexers, ClickHouse Log Servers"
+    - heading: "Core CLI Focus:"
+      text: "df -h, df -i, du -sh, find -size, lsof +L1"
+    - heading: "Operational Goal:"
+      text: "Find what is filling a disk and free space safely before log data is lost"
+  next:
+    number: "14.6"
+    title: "Finding Relevant Log Evidence"
+
+scenes:
+  # ------------------------------------------------------------- 1
+  - id: title
+    slide:
+      type: title
+    narration: |
+      Welcome to Module 14.5: Identifying Storage Problems.
+      In this lesson, you will learn how to tell when a Linux disk is full, how to find exactly what is filling it, and how to free space safely, so your log pipelines keep moving.
+
+  # ------------------------------------------------------------- 2
+  - id: space-vs-inodes
+    slide:
+      type: two_columns
+      number: "14.5.1"
+      title: "CORE CONCEPTS: Disk Space vs. Inodes"
+      subtitle: "A filesystem has two separate budgets. Running out of either one stops new writes."
+      left:
+        heading: "DISK SPACE (How Many Bytes)"
+        color: blue
+        example: "df -h  ->  /opt/splunk  Use% 96%"
+        bullets:
+          - "The total size of all file contents, shown in G (gigabytes) and M (megabytes)."
+          - "Filled by a few very large files, such as debug logs or old index data."
+          - "Checked with **df -h**. Shown in the Use% column."
+      right:
+        heading: "INODES (How Many Files)"
+        color: red
+        example: "df -i  ->  /var/spool/app  IUse% 100%"
+        bullets:
+          - "Every file and folder needs one inode: a small record that describes it."
+          - "Filled by millions of tiny files, such as temp files or a stuck mail queue."
+          - "Checked with **df -i**. Shown in the IUse% column."
+    narration: |
+      Every Linux filesystem has two budgets. The first is disk space, the number of bytes your files use. A few huge files, like a debug log, can fill it. The second is inodes. Every file needs one inode, a small record that describes it. Millions of tiny files can use every inode while space is still free. If either budget hits one hundred percent, Linux cannot create or grow files.
+  # ------------------------------------------------------------- 3
+  - id: real-world-impact
+    slide:
+      type: table
+      number: "14.5.2"
+      title: "ENTERPRISE OPERATIONS: Storage in Splunk & ClickHouse Pipelines"
+      subtitle: "Where a full disk breaks log collection, indexing and querying."
+      columns: ["Pipeline Stage", "Storage Dependency & Operational Impact", "Failure Risk"]
+      widths: [19, 53, 28]
+      rows:
+        - - "1. Log Source Host"
+          - "Applications write logs to /var/log and the Splunk Universal Forwarder reads them from there. Log rotation needs free space to compress old files."
+          - "[red]**Lost Events:**[/red]\nApplications cannot write new log lines, so the events are never recorded."
+        - - "2. Splunk Indexer"
+          - "Indexers store data under /opt/splunk/var/lib/splunk. Splunk pauses indexing when free space drops below minFreeSpace (default 5000 MB)."
+          - "[red]**Ingestion Stops:**[/red]\nForwarders block, queue data and fall behind."
+        - - "3. ClickHouse Server"
+          - "ClickHouse writes data to /var/lib/clickhouse and needs extra free space to merge small data parts into bigger ones in the background."
+          - "[orange]**Failed Inserts:**[/orange]\nInserts and merges fail with not enough space errors."
+    narration: |
+      In a log pipeline, storage problems spread fast. On the log source host, if /var/log is full, new log lines are simply lost. On a Splunk indexer, Splunk pauses indexing when free space falls below about five gigabytes. Forwarders then stop sending and start to fall behind. And on a ClickHouse server, inserts and background merges fail when there is no room to write.
+
+  # ------------------------------------------------------------- 4
+  - id: architecture-diagram
+    slide:
+      type: diagram
+      number: "14.5.3"
+      title: "ARCHITECTURE DIAGRAM: How a Full Disk Blocks a Log Write"
+      subtitle: "Every new log line needs free space AND a free inode on the filesystem."
+      heading: "MODULE 14.5: THE TWO STORAGE BUDGETS"
+      lines: |
+        [ SPLUNK FORWARDER ] ───> [ write /var/log/app.log ] ───> [ FILESYSTEM /dev/sda1 ]
+          splunkd, vector            needs: space + 1 inode         Space:  47G / 50G  (94%)
+                                                                    Inodes: 3.2M / 3.2M ([red]100%[/red])
+                                              │
+                                              v
+                         Either budget at 100%  ->  [red]"No space left on device"[/red]
+      takeaways:
+        - "**Same error, two causes:** No space left on device can mean full space OR zero free inodes. Always check both."
+        - "**Check the right mount:** /opt/splunk or /var/lib/clickhouse is often a separate disk from / with its own limits."
+    narration: |
+      Here is the big picture. Before Linux accepts a new log line, the filesystem needs two things: free space, and a free inode for any new file. In this example, the disk still has space, but every inode is used. Linux returns the same error either way: No space left on device. That is why you always check both.
+  # ------------------------------------------------------------- 5
+  - id: step-by-step
+    slide:
+      type: table
+      number: "14.5.4"
+      title: "STEP-BY-STEP: Storage Investigation Method"
+      subtitle: "The order an SRE follows to go from the error message to the file causing it."
+      columns: ["Step", "Command", "Action Taken"]
+      widths: [11, 30, 59]
+      rows:
+        - ["Step 1", "**journalctl -p err**", "Confirm the symptom. Look for No space left on device or Splunk minFreeSpace messages in the logs."]
+        - ["Step 2", "**df -h**", "Find which filesystem (mount point) is full by reading the Use% column."]
+        - ["Step 3", "**df -i**", "Check inodes on the same filesystem. IUse% at 100% means too many files, not too much data."]
+        - ["Step 4", "**du -sh /var/* | sort -rh**", "Drill down folder by folder, biggest first, until you find the files using the space."]
+        - ["Step 5", "**lsof +L1**", "If df and du disagree, find deleted files that a running process is still holding open."]
+    narration: |
+      When a disk problem hits, follow five steps.
+      First, find the error message in the logs.
+      Second, run df dash h to see which filesystem is full.
+      Third, run df dash i to check whether you ran out of inodes instead.
+      Fourth, use du to measure each folder, biggest first, until you find the files.
+      Fifth, if the numbers do not add up, look for deleted files that a program still holds open.
+  # ------------------------------------------------------------- 6
+  - id: key-commands
+    slide:
+      type: two_columns
+      number: "14.5.5"
+      title: "KEY COMMANDS: df (Filesystem View) vs du (Folder View)"
+      subtitle: "df tells you WHICH disk is full. du tells you WHAT is filling it."
+      left:
+        heading: "STEP 1: df - Which Disk Is Full?"
+        color: blue
+        text: "Reports used and free space for each mounted filesystem. Add -i to see inodes instead of bytes. Add -x tmpfs to hide memory-only filesystems."
+        code: |
+          df -h -x tmpfs
+          df -i /var/spool/app
+      right:
+        heading: "STEP 2: du - What Is Filling It?"
+        color: red
+        text: "Adds up the size of files inside folders. Sort the result biggest first. Add -x to stay on one filesystem."
+        code: |
+          du -xsh /var/* | sort -rh | head
+          find /var/log -type f -size +500M
+    narration: |
+      Two commands do most of the work. The first is df, short for disk free. It tells you which disk is full. The second is du, short for disk usage. It adds up the files inside each folder, so it tells you what is filling the disk. Use df first, then du and find to locate the biggest folders and files.
+  # ------------------------------------------------------------- 7
+  - id: deleted-open-files
+    slide:
+      type: panel
+      number: "14.5.6"
+      title: "DEEP DIVE: Deleted Files That Still Use Space"
+      subtitle: "Why deleting a big log file sometimes frees nothing, and df and du disagree."
+      heading: "What is a deleted-but-open file?"
+      text: "When you delete a file that a running program still has open, Linux removes the file name but keeps the data on disk until the program closes it. du no longer counts the file, but df still does, so the disk stays full."
+      subheading: "Why it matters in log pipelines:"
+      bullets:
+        - "**Space Not Freed:** Running rm on an active splunkd.log or app log does not free the space while the service keeps it open."
+        - "**How to Find It:** lsof +L1 lists open files that have no name left on disk, with the program and size."
+        - "**Safe Fix:** Empty an active log with truncate -s 0 instead of rm, or restart the program that holds the deleted file."
+    narration: |
+      Here is a common trap. You delete a huge log file, but df still shows the disk as full. A running program still has that file open, so Linux keeps the data until the program lets go. To find these files, run lsof with the plus L1 option. To empty an active log safely, use truncate instead of deleting it, or restart the program.
+  # ------------------------------------------------------------- 8
+  - id: demo-df
+    slide:
+      type: terminal
+      number: "14.5.7"
+      title: "CLI DEMO 1: Finding the Full Disk with df -h & df -i"
+      subtitle: "Reading space and inode usage on a busy Splunk indexer."
+      panels:
+        - heading: "Terminal Output: Space (df -h) and Inodes (df -i)"
+          color: blue
+          lines: |
+            user@splunk-idx01:~$ df -h -x tmpfs
+            Filesystem      Size  Used Avail Use% Mounted on
+            /dev/sda1        50G   21G   27G  44% /
+            /dev/sdb1       500G  476G   24G  [red]96%[/red] /opt/splunk
+            /dev/sdc1        20G  2.1G   17G  11% /var/spool/app
+
+            user@splunk-idx01:~$ df -i /var/spool/app
+            Filesystem      Inodes   IUsed IFree IUse% Mounted on
+            /dev/sdc1      1310720 1310720     0  [red]100%[/red] /var/spool/app
+      takeaways:
+        - "/opt/splunk is at 96% space: once free space drops below 5000 MB, Splunk pauses indexing."
+        - "/var/spool/app shows only 11% space used, yet 100% of its inodes are gone, so no new file can be created."
+    demo:
+      setup: |
+        printf 'Filesystem      Size  Used Avail Use%% Mounted on\n/dev/sda1        50G   21G   27G  44%% /\n/dev/sdb1       500G  476G   24G  96%% /opt/splunk\n/dev/sdc1        20G  2.1G   17G  11%% /var/spool/app\n' > /tmp/clean_df_h.txt
+        printf 'Filesystem      Inodes   IUsed IFree IUse%% Mounted on\n/dev/sdc1      1310720 1310720     0  100%% /var/spool/app\n' > /tmp/clean_df_i.txt
+      commands:
+        - comment: "# Step 1: Inspect space and inode usage saved from a busy Splunk indexer"
+          run: "cat /tmp/clean_df_h.txt"
+          wait: 6
+        - run: "cat /tmp/clean_df_i.txt"
+          wait: 6
+    narration: |
+      Let's look at an example. In this demo we print saved output from a busy Splunk indexer, because your own machine will show different disks. First, df dash h shows the /opt/splunk disk at ninety six percent, close to the point where Splunk pauses indexing. Then df dash i shows that /var/spool/app has plenty of space, but zero free inodes.
+  # ------------------------------------------------------------- 9
+  - id: demo-du-find
+    slide:
+      type: terminal
+      number: "14.5.8"
+      title: "CLI DEMO 2: Finding What Fills the Disk with du & find"
+      subtitle: "Drilling down from the full disk to the exact folder and file using the space."
+      panels:
+        - heading: "DU COMMAND (Biggest Folders First)"
+          color: blue
+          lines: |
+            $ du -sh /tmp/disk_demo/* | sort -rh
+            [red]61M[/red]     /tmp/disk_demo/forwarder
+            13M     /tmp/disk_demo/app
+            8.0K    /tmp/disk_demo/cron
+        - heading: "FIND COMMAND (Files Over 20 MB)"
+          color: green
+          lines: |
+            $ find /tmp/disk_demo -type f -size +20M
+            /tmp/disk_demo/forwarder/[red]splunkd-debug.log[/red]
+      note: "**Reading the Output:** du shows the forwarder folder is the biggest. find then points to one file: a debug log left on after troubleshooting. On a real server, run the same commands on the full mount point."
+    demo:
+      setup: |
+        mkdir -p /tmp/disk_demo/forwarder /tmp/disk_demo/app /tmp/disk_demo/cron
+        head -c 60M /dev/zero > /tmp/disk_demo/forwarder/splunkd-debug.log
+        head -c 900K /dev/zero > /tmp/disk_demo/forwarder/splunkd.log
+        head -c 12M /dev/zero > /tmp/disk_demo/app/app.log
+        echo '0 2 * * * /usr/local/bin/cleanup.sh' > /tmp/disk_demo/cron/jobs.txt
+      commands:
+        - comment: "# Step 2: Find which folder and which file use the most space"
+          run: "du -sh /tmp/disk_demo/* | sort -rh"
+          wait: 6
+        - run: "find /tmp/disk_demo -type f -size +20M"
+          wait: 6
+    narration: |
+      Now we find what is filling the disk. For this demo, we created a small practice folder in /tmp. First, du with the dash s h options measures each folder, and sort puts the biggest one at the top. The forwarder folder is clearly the largest. Then find lists every file bigger than twenty megabytes. It points to one file: a debug log that someone forgot to switch off.
+
+  # ------------------------------------------------------------- 10
+  - id: outage-framework
+    slide:
+      type: table
+      number: "14.5.9"
+      title: "OUTAGE FRAMEWORK: Storage Failures in Production"
+      subtitle: "Real-world incident analysis using our 'Why Required / If Not Done' failure model."
+      columns: ["Configuration", "Why Required", "If NOT Done (Outage Impact)"]
+      widths: [25, 36, 39]
+      rows:
+        - - "Free Space on Data Mounts (/opt/splunk, /var/lib/clickhouse)"
+          - "Indexers and databases need room to write new data and to merge or roll old data."
+          - "[red]**Ingestion Pause:**[/red]\nSplunk stops indexing below 5000 MB free; forwarders back up.\n**Fix:** `sudo du -xsh /opt/splunk/* | sort -rh | head`"
+        - - "Free Inodes on Spool and Temp Folders"
+          - "Every new file needs one inode, even a tiny one."
+          - "[orange]**No space left on device:**[/orange]\nNew files fail while df -h still shows free space.\n**Fix:** `df -i` then remove old files: `sudo find /var/spool/app -type f -mtime +7 -delete`"
+        - - "Log Rotation for Active Logs"
+          - "Keeps log files small and removes old copies without breaking the program writing them."
+          - "[red]**Hidden Full Disk:**[/red]\nDeleting an open log frees nothing until the program closes it.\n**Fix:** `sudo lsof +L1` then `sudo truncate -s 0 <file>`"
+    narration: |
+      Here is the rule of thumb. When you see No space left on device, run both df dash h and df dash i before you delete anything. Then find the cause with du and find. And never remove an active log file with rm. Empty it with truncate, or let log rotation handle it, so the space is really freed.
+  # ------------------------------------------------------------- 11
+  - id: knowledge-check
+    slide:
+      type: quiz
+      number: "14.5.10"
+      title: "KNOWLEDGE CHECK: Quiz & Embedded AI Explainer"
+      subtitle: "Interactive student evaluation with instant automated feedback."
+      question: 1
+    narration: |
+      Quick knowledge check. You get No space left on device, but df with the dash h option shows sixty percent free. What should you check next? The answer is inodes, with df dash i. The disk may have run out of file slots, not space.
+
+  # ------------------------------------------------------------- 12
+  - id: lab-and-next
+    slide:
+      type: lab
+      number: "14.5.11"
+      title: "PRACTICAL LAB & NEXT MODULE PREVIEW"
+      subtitle: "From finding storage problems to finding the log evidence that explains them."
+      steps:
+        - "Open the embedded Killercoda Linux terminal on the right of your course platform."
+        - "Check space and inodes on the root filesystem: df -h / and df -i /."
+        - "Find the biggest folder under /var/log with du -sh and sort -rh."
+        - "Locate the oversized forwarder debug log with find -size +100M and empty it safely with truncate."
+        - "List deleted files still held open by a running process with lsof +L1."
+      next_text: "Now that you can find what is filling a disk, we will learn how to find the exact log lines that prove what went wrong, using journalctl, grep and time filters."
+    narration: |
+      Now, head over to the interactive Killercoda terminal on your screen and find the file that is filling the disk. See you in the next lesson, where we find the log evidence!
+
+# =====================================================================
+# QUIZ - 3 questions (question 1 is also shown on the quiz slide)
+# =====================================================================
+quiz:
+  - topic: "Space vs Inodes"
+    question: "An application fails with No space left on device, but df -h shows the filesystem is only 40% used. What should you check next?"
+    options:
+      - "Free inodes on the same filesystem with df -i"
+      - "The DNS settings in /etc/resolv.conf"
+      - "The CPU load with uptime"
+    answer: A
+    explanation: "Linux gives the same error when a filesystem runs out of inodes. Millions of small files can use every inode while plenty of space is still free, and df -i shows it in the IUse% column."
+    tip: "Run df -h and df -i together on every disk alert. It takes two seconds and rules out the most common surprise."
+
+  - topic: "df vs du"
+    question: "df -h shows /opt/splunk is 96% full. Which command helps you find the folders using the most space on it?"
+    options:
+      - "df -i /opt/splunk"
+      - "du -xsh /opt/splunk/* | sort -rh | head"
+      - "ls /opt/splunk"
+    answer: B
+    explanation: "df shows which filesystem is full, but du adds up the size of each folder. Sorting with sort -rh puts the biggest folder first, and -x keeps du on that one filesystem."
+
+  - topic: "Deleted but Still Open"
+    question: "You deleted a 30 GB splunkd.log file with rm, but df still shows the disk as full. What is the most likely reason?"
+    options:
+      - "The disk needs to be reformatted"
+      - "Linux needs a reboot to recalculate free space"
+      - "A running process still has the deleted file open, so its data is not freed"
+    answer: C
+    explanation: "Linux keeps a file's data until every program closes it. Find it with lsof +L1, then restart that program, or next time empty the active log with truncate -s 0 instead of rm."
+    tip: "Configure logrotate with copytruncate or a postrotate reload for services that keep their log files open."
+
+# =====================================================================
+# KILLERCODA LAB - built into build/publish/killercoda/
+# =====================================================================
+lab:
+  title: "Identifying Storage Problems Lab"
+  image: ubuntu
+  setup: |
+    command -v lsof >/dev/null || (apt-get update -qq && apt-get install -y -qq lsof)
+    mkdir -p /var/log/splunkforwarder /var/log/demo-app
+    head -c 150M /dev/zero > /var/log/splunkforwarder/splunkd-debug.log
+    head -c 5M /dev/zero > /var/log/demo-app/app.log
+    nohup sh -c 'exec 3>/var/log/demo-app/old-rotated.log; head -c 40M /dev/zero >&3; rm -f /var/log/demo-app/old-rotated.log; sleep 7200' >/dev/null 2>&1 &
+  intro: |
+    In this lab you will check disk space and inodes, find the folder and the file that are filling the disk, empty an oversized log safely, and find a deleted file that still uses space.
+  steps:
+    - title: "Check space and inodes"
+      text: "Look at the `Use%` column for space and the `IUse%` column for inodes. Either one at 100% stops new writes."
+      commands: ["df -h /", "df -i /"]
+    - title: "Find the biggest folder under /var/log"
+      text: "Measure every folder in `/var/log` and sort the result biggest first. The top line is where to look next."
+      commands: ["du -sh /var/log/* 2>/dev/null | sort -rh | head -5"]
+    - title: "Find the oversized file"
+      text: "List every file under `/var/log` bigger than 100 MB, with its size."
+      commands: ["find /var/log -type f -size +100M -exec ls -lh {} \\;"]
+    - title: "Empty the debug log safely"
+      text: "Do not delete an active log with `rm`. Empty it with `truncate` so the file stays in place and the space is freed at once. Then check `du` again."
+      commands: ["truncate -s 0 /var/log/splunkforwarder/splunkd-debug.log", "du -sh /var/log/splunkforwarder"]
+      verify: "[ -f /var/log/splunkforwarder/splunkd-debug.log ] && [ $(stat -c %s /var/log/splunkforwarder/splunkd-debug.log) -lt 1048576 ]"
+    - title: "Find deleted files that still use space"
+      text: "A background process still holds a deleted 40 MB log file open. `lsof +L1` lists it with the program name (`COMMAND`) and its process ID (`PID`)."
+      commands: ["lsof +L1"]
+  finish: |
+    Well done! You checked space and inodes with df, found the biggest folder and file with du and find, emptied an active log safely with truncate, and found a deleted file still held open with lsof. Next up: Module 14.6 - Finding Relevant Log Evidence.
