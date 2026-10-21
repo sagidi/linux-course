@@ -3,7 +3,7 @@
 #
 # This ONE file is the source for everything in this module:
 #   slides PDF + slide images, terminal demo videos, voiceover,
-#   final video, captions, quiz and the Killercoda lab.
+#   final video, captions, quiz and the hands-on lab.
 #
 # Edit this file, then rebuild:   ./build.sh 14.5 --draft
 # =====================================================================
@@ -273,14 +273,14 @@ scenes:
       title: "PRACTICAL LAB & NEXT MODULE PREVIEW"
       subtitle: "From finding storage problems to finding the log evidence that explains them."
       steps:
-        - "Open the embedded Killercoda Linux terminal on the right of your course platform."
+        - "Open the practice terminal below this lesson. It is your own Linux machine."
         - "Check space and inodes on the root filesystem: df -h / and df -i /."
         - "Find the biggest folder under /var/log with du -sh and sort -rh."
         - "Locate the oversized forwarder debug log with find -size +100M and empty it safely with truncate."
         - "List deleted files still held open by a running process with lsof +L1."
       next_text: "Now that you can find what is filling a disk, we will learn how to find the exact log lines that prove what went wrong, using journalctl, grep and time filters."
     narration: |
-      Now, head over to the interactive Killercoda terminal on your screen and find the file that is filling the disk. See you in the next lesson, where we find the log evidence!
+      Now, open the practice terminal below this lesson and find the file that is filling the disk. See you in the next lesson, where we find the log evidence!
 
 # =====================================================================
 # QUIZ - 3 questions (question 1 is also shown on the quiz slide)
@@ -316,7 +316,7 @@ quiz:
     tip: "Configure logrotate with copytruncate or a postrotate reload for services that keep their log files open."
 
 # =====================================================================
-# KILLERCODA LAB - built into build/publish/killercoda/
+# HANDS-ON LAB - runs in the embedded practice terminal (one container per student)
 # =====================================================================
 lab:
   title: "Identifying Storage Problems Lab"
